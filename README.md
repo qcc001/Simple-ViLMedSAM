@@ -25,7 +25,7 @@ data
 │       └── labels/
 ├── ...
 ```
-
+All of the masks must be binary segmentation images with 0 for background and 255 for foreground; if not, please process them accordingly.
 ## Guidance
 
 ### Installation
