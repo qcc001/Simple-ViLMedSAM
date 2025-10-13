@@ -83,6 +83,14 @@ def main(args):
 
     ce_loss = nn.BCEWithLogitsLoss(reduction='mean')
 
+    train_dataset = TestDataset(data_root=args.data_root, image_size=args.image_size, data_aug=True)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
+    print('*******Train data:', len(train_dataset))
+
+    effective_batch_size = args.batch_size * args.accumulation_steps
+    num_training_steps = args.num_epochs * (len(train_dataset) // effective_batch_size)
+    num_warmup_steps = int(0.05 * num_training_steps)
+
     optimizer = optim.Adam([{"params": net.parameters(), "lr": args.lora_lr}, {"params": model.parameters(), "lr": args.model_lr}], weight_decay=1e-4)
     scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps)
     print('*******Use warmup_cosineLR')
@@ -100,14 +108,6 @@ def main(args):
     else:
         start_epoch = 0
     torch.cuda.empty_cache()
-
-    train_dataset = TestDataset(data_root=args.data_root, image_size=args.image_size, data_aug=True)
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
-    print('*******Train data:', len(train_dataset))
-
-    effective_batch_size = args.batch_size * args.accumulation_steps
-    num_training_steps = args.num_epochs * (len(train_dataset) // effective_batch_size)
-    num_warmup_steps = int(0.05 * num_training_steps)
 
     train_losses = []
     iou_train = []
@@ -167,4 +167,5 @@ if __name__ == '__main__':
     #random.seed(random_seed)
     args = parse_args()
     main(args)
+
 
