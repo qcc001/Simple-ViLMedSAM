@@ -29,7 +29,9 @@ All of the masks must be binary segmentation images with 0 for background and 25
 ## Guidance
 
 ### Models
-Download CLIP pre-trained ViT-B/16 at [here](https://openaipublic.azureedge.net/clip/models/5806e77cd80f8b59890b7e101eabd078d9fb84e6937f9e85e4ecb61988df416f/ViT-B-16.pt) and put them to ```bash ./FrozenModel ```.
+Download SAM pre-trained ViT-H at [here](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth).
+DownloadCLIP pre-trained ViT-B/16 at [here](https://openaipublic.azureedge.net/clip/models/5806e77cd80f8b59890b7e101eabd078d9fb84e6937f9e85e4ecb61988df416f/ViT-B-16.pt).
+Put them to ```bash ./FrozenModel ```.
 
 ### Installation
 
