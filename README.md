@@ -7,6 +7,7 @@ Medical image segmentation is challenging due to limited annotated data, high la
 
 ```bash
 pip install -r requirements.txt
+```bash
 
 ## Training
 
