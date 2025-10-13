@@ -11,7 +11,7 @@ Public datasets used in our study:
 * [Chest CT](https://www.kaggle.com/datasets/polomarco/chest-ct-segmentation)
 
 Your dataset folder under "data" should be like:
-
+```bash
 data/processed/
 ├── train/
 │   ├── images/           # 训练图像
@@ -22,6 +22,7 @@ data/processed/
 └── test/
     ├── images/           # 测试图像
     └── labels/           # 测试标签
+```
 
 ## Guidance
 
