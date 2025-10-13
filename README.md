@@ -5,9 +5,23 @@
 
 ## Datasets
 Public datasets used in our study:
-* []()
+* [Kvasir-SEG](https://datasets.simula.no/kvasir-seg/)
+* [ISIC](https://challenge.isic-archive.com/data/)
 * [COVID-QU-Ex](https://www.kaggle.com/datasets/anasmohammedtahir/covidqu)
 * [Chest CT](https://www.kaggle.com/datasets/polomarco/chest-ct-segmentation)
+
+Your dataset folder under "data" should be like:
+
+data/processed/
+├── train/
+│   ├── images/           # 训练图像
+│   └── labels/           # 训练标签
+├── val/
+│   ├── images/           # 验证图像
+│   └── labels/           # 验证标签
+└── test/
+    ├── images/           # 测试图像
+    └── labels/           # 测试标签
 
 ## Guidance
 
