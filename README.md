@@ -12,16 +12,18 @@ Public datasets used in our study:
 
 Your dataset folder under "data" should be like:
 ```bash
-data/processed/
-├── train/
-│   ├── images/           # 训练图像
-│   └── labels/           # 训练标签
-├── val/
-│   ├── images/           # 验证图像
-│   └── labels/           # 验证标签
-└── test/
-    ├── images/           # 测试图像
-    └── labels/           # 测试标签
+data
+├──ISIC
+│   ├── train/
+│   │   ├── images/
+│   │   └── labels/
+│   ├── val/
+│   │   ├── images/
+│   │   └── labels/
+│   └── test/
+│       ├── images/
+│       └── labels/
+├── ...
 ```
 
 ## Guidance
