@@ -70,7 +70,7 @@ def evaluation(model_to_eval, dataloader, SAM, net, CLIP, clip_processor, clip_t
             # get image embeddings from SAM if needed (keep same preprocessing as training)
             input_image = SAM.preprocess(image)
             image_embeddings = net.sam.image_encoder(input_image)
-            attribution_map = generate_map(batch, args.data_root, CLIP, clip_processor, clip_tokenizer, args.device)
+            attribution_map = generate_map(batch, args.data_root, CLIP, preprocess, tokenizer, args.device)
             logits = model_to_eval(image_embeddings, attribution_map)
             logits = F.interpolate(logits, (args.image_size, args.image_size), mode='bilinear', align_corners=False)
             pred = torch.sigmoid(logits)
@@ -196,3 +196,4 @@ def main(args):
 if __name__ == '__main__':
     args = parse_args()
     main(args)
+
