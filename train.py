@@ -1,27 +1,27 @@
-import torch.nn as nn
-import math
-from model.aggregation_model import aggregation_model_registry
-from model.aggregation_model import build_aggregation_model
-import torch
+import os
+import datetime
 import argparse
 from os.path import join
+from importlib import import_module
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
-from tqdm import tqdm
-import datetime
+
 import numpy as np
-from torch.optim.lr_scheduler import LambdaLR
-from functools import partial
-from dataloader import TrainDataset
-from torch.nn import functional as F
-from segment_anything.build_sam import build_sam_vit_h
-from segment_anything.modeling.common import generate_vmap
-from transformers import AutoModel, AutoProcessor, AutoTokenizer
+from tqdm import tqdm
+
+import monai
+
+from open_clip import create_model_from_pretrained, get_tokenizer
 from transformers import get_cosine_schedule_with_warmup
-import timm
-import os
-from importlib import import_module
-import random
+
+from dataloader import MyDataset
+from model.aggregation_model import aggregation_model_registry
+from segment_anything.build_sam import build_sam_vit_h
+from segment_anything.modeling.common import generate_map
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -50,21 +50,39 @@ def parse_args():
     return args
 
 def dice_coeff(pred, mask):
-    smooth = 1.0
+    smooth = 1e-6
     assert pred.shape == mask.shape, "pred and mask should have the same shape."
     pred = torch.sigmoid(pred)
+    pred = (pred > 0.5).float()
     intersection = torch.sum(pred * mask)
     union = torch.sum(pred) + torch.sum(mask)
-    dice_loss = (2.0 * intersection + smooth) / (union + smooth)
-    return 1 - dice_loss
+    dice = (2.0 * intersection + smooth) / (union + smooth)
+    return dice
 
-def calculate_mean_iou(gt, pred):
-    pred[pred > 0] = int(1)
-    pred[pred <= 0] = int(0)
-    intersection = torch.sum((gt == 1) & (pred == 1))
-    union = torch.sum((gt == 1) | (pred == 1))
-    iou = intersection / union
-    return iou
+def evaluation(model_to_eval, dataloader, SAM, net, CLIP, clip_processor, clip_tokenizer, args):
+    model_to_eval.eval()
+    dices = []
+    with torch.no_grad():
+        for i, batch in enumerate(tqdm(dataloader)):
+            image = batch["image"].to(args.device)
+            gt2D = batch["gt2D"].to(args.device)
+
+            # get image embeddings from SAM if needed (keep same preprocessing as training)
+            input_image = SAM.preprocess(image)
+            image_embeddings = net.sam.image_encoder(input_image)
+            attribution_map = generate_map(batch, args.data_root, CLIP, clip_processor, clip_tokenizer, args.device)
+            logits = model_to_eval(image_embeddings, attribution_map)
+            logits = F.interpolate(logits, (args.image_size, args.image_size), mode='bilinear', align_corners=False)
+            pred = torch.sigmoid(logits)
+
+            dice_i = dice_coeff(pred, gt2D)
+
+            try:
+                dices.extend(dice_i.cpu().numpy().tolist())
+            except (AttributeError, TypeError):
+                dices.append(dice_i.item() if hasattr(dice_i, 'item') else dice_i)
+    mean_dice = float(np.mean(dices)) if len(dices) > 0 else 0.0
+    return mean_dice
 
 def main(args):
     model = aggregation_model_registry[args.model_type](args).to(args.device)
@@ -76,15 +94,21 @@ def main(args):
     model_grad_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
     print('model_grad_params:' + str(model_grad_params))
 
-    CLIP = AutoModel.from_pretrained("clip-vit-large-patch14", trust_remote_code=True).to(args.device)
-    clip_processor = AutoProcessor.from_pretrained("clip-vit-large-patch14", trust_remote_code=True)
-    clip_tokenizer = AutoTokenizer.from_pretrained("clip-vit-large-patch14", trust_remote_code=True)
+    CLIP, preprocess = create_model_from_pretrained('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
+    tokenizer = get_tokenizer('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
     CLIP.requires_grad_(False)
 
+    dice_loss = monai.losses.DiceLoss(sigmoid=True, squared_pred=True, reduction="mean")
     ce_loss = nn.BCEWithLogitsLoss(reduction='mean')
 
-    train_dataset = TestDataset(data_root=args.data_root, image_size=args.image_size, data_aug=True)
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, pin_memory=True)
+    train_dataset = MyDataset(data_root=args.data_root, image_size=args.image_size, data_aug=True)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
+                              pin_memory=True)
+    print('*******Train data:', len(train_dataset))
+
+    val_dataset = MyDataset(data_root=args.data_root, image_size=args.image_size, data_aug=False)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
+                              pin_memory=True)
     print('*******Train data:', len(train_dataset))
 
     effective_batch_size = args.batch_size * args.accumulation_steps
@@ -109,22 +133,23 @@ def main(args):
         start_epoch = 0
     torch.cuda.empty_cache()
 
-    train_losses = []
-    iou_train = []
+    best_seg_dice = -1.0
+    best_epoch = 0
+    best_checkpoint = None
+
     for epoch in range(start_epoch + 1, args.num_epochs + 1):
         model.train()
         epoch_loss = [1e10 for _ in range(len(train_loader))]
-        iou_train_list = []
         pbar = tqdm(train_loader)
         for step, batch in enumerate(pbar):
-            image = batch["image"].to('cuda')
-            gt2D = batch["gt2D"].to('cuda')
+            image = batch["image"].to(args.device)
+            gt2D = batch["gt2D"].to(args.device)
             input_images = SAM.preprocess(image)
             image_embeddings = net.sam.image_encoder(input_images)  # [b,256,64,64] vit_b
-            vmap, clip_v_features, clip_attn_weights = generate_vmap(batch, args.data_root, CLIP, clip_processor,clip_tokenizer,args.device,'test')  # [b,1,64,64] [b,1,256,768] ViT-B/16 [b,4,hw,c]
-            logits_pred = model(image_embeddings, clip_v_features, clip_attn_weights, vmap)
+            attribution_map = generate_map(batch, args.data_root, CLIP, clip_processor, clip_tokenizer, args.device)  # [b,1,64,64] [b,1,256,768] ViT-B/16 [b,4,hw,c]
+            logits_pred = model(image_embeddings, attribution_map)
             logits_pred = F.interpolate(logits_pred, (args.image_size, args.image_size), mode="bilinear", align_corners=False)
-            l_seg = dice_coeff(logits_pred, gt2D)
+            l_seg = dice_loss(logits_pred, gt2D.float())
             l_ce = ce_loss(logits_pred, gt2D.float())
             loss = args.seg_loss_weight * l_seg + args.ce_loss_weight * l_ce
             epoch_loss[step] = loss.item()
@@ -136,18 +161,15 @@ def main(args):
 
             pbar.set_description(
                 f"Epoch {epoch} at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}, loss: {loss.item():.4f}")
-            iou_score = calculate_mean_iou(gt2D, logits_pred)
-            iou_train_list.append(iou_score.cpu().detach().numpy())
 
-       if scheduler is not None:
-            scheduler.step()
         epoch_loss_reduced = sum(epoch_loss) / len(epoch_loss)
+        print(f"Epoch {epoch} summary | loss: {epoch_loss_reduced:.4f}")
 
-        print(f"train loss:{epoch_loss_reduced:.6f}")
-        print(" train iou:", np.mean(iou_train_list))
-        train_losses.append(epoch_loss_reduced)
+        print("Running validation...")
+        val_dice = evaluation(model, val_loader, SAM, net, CLIP, clip_processor, clip_tokenizer, args)
+        print(f"Validation seg dice: {val_dice:.4f}")
+
         scheduler.step()
-        iou_train.append(np.mean(iou_train_list))
         model_weights = model.state_dict()
         checkpoint = {
             "lora": net.state_dict(),
@@ -161,13 +183,16 @@ def main(args):
         if (epoch % 10) == 0:
             torch.save(checkpoint, join(args.work_dir, f"{epoch}.pth"))
 
+        if val_dice > best_seg_dice:
+            best_seg_dice = val_dice
+            best_epoch = epoch
+            best_checkpoint = checkpoint
+
+        torch.save(best_checkpoint, join(args.work_dir, "best_model.pth"))
+        print(f"\nTraining Complete! Best Dice: {best_seg_dice:.4f} at epoch {best_epoch}")
+        print("Training finished")
+
 
 if __name__ == '__main__':
-    #random_seed = 42
-    #np.random.seed(random_seed)
-    #random.seed(random_seed)
     args = parse_args()
     main(args)
-
-
-
