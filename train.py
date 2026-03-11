@@ -132,7 +132,6 @@ def main(args):
             loss.backward()
             if (step + 1) % args.accumulation_steps == 0:
                 optimizer.step()
-                scheduler.step()
                 optimizer.zero_grad()
 
             pbar.set_description(
@@ -140,6 +139,8 @@ def main(args):
             iou_score = calculate_mean_iou(gt2D, logits_pred)
             iou_train_list.append(iou_score.cpu().detach().numpy())
 
+       if scheduler is not None:
+            scheduler.step()
         epoch_loss_reduced = sum(epoch_loss) / len(epoch_loss)
 
         print(f"train loss:{epoch_loss_reduced:.6f}")
@@ -167,5 +168,6 @@ if __name__ == '__main__':
     #random.seed(random_seed)
     args = parse_args()
     main(args)
+
 
 
