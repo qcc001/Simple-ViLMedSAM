@@ -11,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 from scipy.ndimage import distance_transform_edt
 
-from dataloader import TestDataset
+from dataloader import MyDataset
 from model.model import Model
 from segment_anything.build_sam import build_sam_vit_h
 
@@ -282,10 +282,8 @@ def main(args):
         logger.info(f"  {arg}: {value}")
     logger.info("=" * 50)
     
-    test_dataset = TestDataset_Vmap(
+    test_dataset = MyDataset(
         data_root=args.data_root,
-        vmap_root=args.vmap_root,
-        vmap_type=args.vmap_type,
         image_size=args.image_size,
         data_aug=False
     )
