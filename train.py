@@ -84,6 +84,8 @@ def evaluation(model_to_eval, dataloader, SAM, lora_net, args, logger):
 
             input_image = SAM.preprocess(image)
             image_embeddings = lora_net.sam.image_encoder(input_image)
+            B, C, H, W = image_embeddings.shape
+            attribution_map = nn.functional.interpolate(attribution_map.float(), size=(H, W), mode='bilinear', align_corners=False)
             logits = model_to_eval(image_embeddings, attribution_map)
             logits = F.interpolate(logits, (args.image_size, args.image_size), mode='bilinear', align_corners=False)
             pred = torch.sigmoid(logits)
@@ -190,6 +192,8 @@ def main(args):
             
             input_images = SAM.preprocess(image)
             image_embeddings = lora_net.sam.image_encoder(input_images)  # [b,256,64,64]
+            B, C, H, W = image_embeddings.shape
+            attribution_map = nn.functional.interpolate(attribution_map.float(), size=(H, W), mode='bilinear', align_corners=False)
             
             logits_pred = model(image_embeddings, attribution_map)
             logits_pred = F.interpolate(
