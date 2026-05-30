@@ -28,8 +28,8 @@ class Model(nn.Module):
         )
 
         self.norm1 = nn.LayerNorm(embedding_dim)
-        self.mlp_vmap = MLPBlock(embedding_dim, mlp_dim, act)
-        self.norm_vmap = nn.LayerNorm(embedding_dim)
+        self.mlp_map = MLPBlock(embedding_dim, mlp_dim, act)
+        self.norm_map = nn.LayerNorm(embedding_dim)
 
         self.cross_attn1 = Attention(
             embedding_dim, num_heads, downsample_rate=attention_downsample_rate
@@ -71,7 +71,7 @@ class Model(nn.Module):
             nn.Conv2d(embedding_dim // 8, 1, kernel_size=1)
         )
 
-    def forward(self, sam_image_feats: torch.Tensor, vmap: torch.Tensor):
+    def forward(self, sam_image_feats: torch.Tensor, attribution_map: torch.Tensor):
         # [b,256,64,64] [b,1,64,64]
 
         B, C, H, W = sam_image_feats.shape
@@ -81,22 +81,21 @@ class Model(nn.Module):
         similarity[similarity < 0.0] = float('-inf')
         attn_weights = F.softmax(similarity, dim=-1)  # [b,4096,4096]
 
-        vmap = F.interpolate(vmap.float().unsqueeze(1), size=(H, W), mode='bilinear', align_corners=False)
-        b, c, h, w = vmap.shape
-        v = vmap.flatten(2)  # [b,1,4096]
+        b, c, h, w = attribution_map.shape
+        v = attribution_map.flatten(2)  # [b,1,4096]
         v = v.permute(0, 2, 1)  # [b,4096,1]
         attn_output = torch.bmm(attn_weights, v)  # [b,4096,1]
         attn_output = attn_output.permute(0, 2, 1)  # [b,1,4096]
-        attn_output_vmap = attn_output.view(b, c, h, w)  # [b,1,64,64]
+        attn_output_map = attn_output.view(b, c, h, w)  # [b,1,64,64]
 
-        vmap_final = torch.cat([vmap, attn_output_vmap], dim=1) #[b,2,h,w]
-        vmap_normalized = self.norm_input(vmap_final)
-        vmap_feature = self.proj(vmap_normalized)  # [b,256,64,64]
-        vmap_flat = vmap_feature.flatten(2).permute(0, 2, 1)  # [b,h*w,256]
-        vmap_feature = self.norm1(vmap_flat)  # [b,4096,256]
-        vmap_feature_mlp = self.mlp_vmap(vmap_feature)
-        vmap_feats = vmap_feature_mlp + vmap_feature
-        vmap_feats = self.norm_vmap(vmap_feats)  # [b, 4096, 256]
+        attribution_map_final = torch.cat([attribution_map, attn_output_map], dim=1) #[b,2,h,w]
+        attribution_map_normalized = self.norm_input(attribution_map_final)
+        attribution_map_feature = self.proj(attribution_map_normalized)  # [b,256,64,64]
+        attribution_map_flat = attribution_map_feature.flatten(2).permute(0, 2, 1)  # [b,h*w,256]
+        attribution_map_feature = self.norm1(attribution_map_flat)  # [b,4096,256]
+        attribution_map_feature_mlp = self.attribution_map_map(vmap_feature)
+        attribution_map_feats = attribution_map_feature_mlp + attribution_map_feature
+        attribution_map_feats = self.norm_map(attribution_map_feats)  # [b, 4096, 256]
 
         sam_image_feats = sam_image_feats.flatten(2).permute(0, 2, 1)  # [b,4096,256]
 
