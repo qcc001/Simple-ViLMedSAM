@@ -19,7 +19,6 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 def setup_logging(work_dir):
-    """设置日志记录"""
     log_file = os.path.join(work_dir, f'test_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
     logging.basicConfig(
         level=logging.INFO,
@@ -199,12 +198,12 @@ def test_epoch(model, net, SAM, test_loader, metrics_calc, device, epoch, args):
         for batch_idx, batch in enumerate(pbar):
             image = batch["image"].to(device)
             gt2D = batch["gt2D"].to(device)
-            vmap = batch["vmap"].to(device)
+            attribution_map = batch["attribution_map"].to(args.device)
             
             input_images = SAM.preprocess(image)
             image_embeddings = net.sam.image_encoder(input_images)
             
-            logits_pred = model(image_embeddings, vmap)
+            logits_pred = model(image_embeddings, attribution_map)
             logits_pred = F.interpolate(
                 logits_pred, 
                 size=(args.image_size, args.image_size), 
