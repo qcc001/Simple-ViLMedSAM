@@ -202,6 +202,8 @@ def test_epoch(model, net, SAM, test_loader, metrics_calc, device, epoch, args):
             
             input_images = SAM.preprocess(image)
             image_embeddings = net.sam.image_encoder(input_images)
+            B, C, H, W = image_embeddings.shape
+            attribution_map = nn.functional.interpolate(attribution_map.float(), size=(H, W), mode='bilinear', align_corners=False)
             
             logits_pred = model(image_embeddings, attribution_map)
             logits_pred = F.interpolate(
