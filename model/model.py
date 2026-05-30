@@ -3,14 +3,6 @@ from segment_anything.modeling.common import *
 from segment_anything.modeling.transformer import Attention
 import torch
 
-
-def normalize_imagenet_single_channel(image):
-    image_0_1 = image / 255.0
-    mean = torch.tensor([0.449], device=image.device).view(1, 1, 1, 1)
-    std = torch.tensor([0.226], device=image.device).view(1, 1, 1, 1)
-    return (image_0_1 - mean) / std
-
-
 class Model(nn.Module):
     def __init__(
             self,
