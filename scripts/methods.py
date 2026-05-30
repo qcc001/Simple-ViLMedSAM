@@ -57,4 +57,4 @@ def vision_heatmap_iba(text_t, image_t, model, layer_idx, beta, var, device, lr=
     layer = extract_bert_layer(model.vision_model, layer_idx)
     compression_estimator = get_compression_estimator(var, layer, features)
     reader = IBAInterpreter(model, compression_estimator, device, beta=beta, lr=lr, steps=train_steps, progbar=progbar,ensemble=ensemble)
-    return reader.vision_heatmap(text_t, image_t), features, attn_weight_list
+    return reader.vision_heatmap(text_t, image_t)
