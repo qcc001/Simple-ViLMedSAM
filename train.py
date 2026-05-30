@@ -22,7 +22,6 @@ from transformers import get_cosine_schedule_with_warmup
 from dataloader import MyDataset
 from model.model import Model
 from segment_anything.build_sam import build_sam_vit_h
-from segment_anything.modeling.common import generate_map
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -81,11 +80,10 @@ def evaluation(model_to_eval, dataloader, SAM, net, CLIP, preprocess, tokenizer,
         for i, batch in enumerate(tqdm(dataloader, desc="Validation")):
             image = batch["image"].to(args.device)
             gt2D = batch["gt2D"].to(args.device)
+            attribution_map = batch["attribution_map"].to(args.device)
 
-            # get image embeddings from SAM if needed (keep same preprocessing as training)
             input_image = SAM.preprocess(image)
             image_embeddings = net.sam.image_encoder(input_image)
-            attribution_map = generate_map(batch, args.data_root, CLIP, preprocess, tokenizer, args.device)
             logits = model_to_eval(image_embeddings, attribution_map)
             logits = F.interpolate(logits, (args.image_size, args.image_size), mode='bilinear', align_corners=False)
             pred = torch.sigmoid(logits)
@@ -116,7 +114,7 @@ def main(args):
 
     SAM = build_sam_vit_h("sam_vit_h_4b8939.pth").to(args.device)
     pkg = import_module('sam_lora_image_encoder')
-    net = pkg.LoRA_Sam(SAM, 4).cuda()
+    lora_net = pkg.LoRA_Sam(SAM, 4).cuda()
     model_grad_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
     logger.info(f'Trainable LoRA parameters: {model_grad_params:,}')
 
@@ -166,7 +164,10 @@ def main(args):
         with open(args.resume, "rb") as f:
             checkpoint = torch.load(f, map_location='cpu')
             model.load_state_dict(checkpoint['model'])
-            net.load_state_dict(checkpoint["lora"])
+            last = "${args.resume##*/}"
+            prefix = "${args.resume%/*}"
+            lora_ckpt = "${prefix}/lora/${last}"
+            lora_net.load_lora_parameters(lora_ckpt)
             optimizer.load_state_dict(checkpoint['optimizer'])
             if 'scheduler' in checkpoint and checkpoint['scheduler'] is not None:
                 scheduler.load_state_dict(checkpoint['scheduler'])
@@ -192,11 +193,7 @@ def main(args):
             gt2D = batch["gt2D"].to(args.device)
             
             input_images = SAM.preprocess(image)
-            image_embeddings = net.sam.image_encoder(input_images)  # [b,256,64,64] vit_b
-            
-            attribution_map = generate_map(
-                batch, args.data_root, CLIP, preprocess, tokenizer, args.device
-            )  # [b,1,64,64]
+            image_embeddings = lora_net.sam.image_encoder(input_images)  # [b,256,64,64] vit_b
             
             logits_pred = model(image_embeddings, attribution_map)
             logits_pred = F.interpolate(
@@ -247,7 +244,6 @@ def main(args):
         logger.info(f"Validation Seg Dice: {val_dice:.4f}")
 
         checkpoint = {
-            "lora": net.state_dict(),
             "model": model.state_dict(),
             "epoch": epoch,
             "global_step": global_step,
@@ -256,12 +252,17 @@ def main(args):
             "loss": avg_epoch_loss,
             "best_dice": best_seg_dice,
         }
-        
-        os.makedirs(args.work_dir, exist_ok=True)
+        if not os.path.exists(args.work_dir):
+            os.makedirs(args.work_dir, exist_ok=True)
+        save_lora_dir = join(args.work_dir, "lora")
+        if not os.path.exists(save_net_dir):
+            os.makedirs(save_net_dir)
         
         if (epoch % 10) == 0:
             save_path = join(args.work_dir, f"checkpoint_epoch_{epoch}.pth")
             torch.save(checkpoint, save_path)
+            save_net_path = os.path.join(save_net_dir, 'checkpoint_epoch_{epoch}.pth')
+            lora_net.save_lora_parameters(save_net_path)
             logger.info(f"Saved checkpoint to {save_path}")
         
         if val_dice > best_seg_dice:
@@ -270,6 +271,8 @@ def main(args):
             best_checkpoint = checkpoint.copy()
             best_path = join(args.work_dir, "best_model.pth")
             torch.save(best_checkpoint, best_path)
+            save_net_path = os.path.join(save_net_dir, 'best_model.pth')
+            lora_net.save_lora_parameters(save_net_path)
             logger.info(f"New best model! Dice: {best_seg_dice:.4f} at epoch {best_epoch}")
         
         latest_path = join(args.work_dir, "latest_model.pth")
