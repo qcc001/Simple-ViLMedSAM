@@ -1,9 +1,8 @@
 # Simple-ViLMedSAM
-<div align="center">
 
 *Bridging Vision Foundation Models with Simple Text Queries for Medical Image Segmentation*
 
-**🏆 Accepted at CVPR 2026**
+**Accepted at CVPR 2026**
 
 ## Abstract
 
