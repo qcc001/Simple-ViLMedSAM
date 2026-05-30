@@ -297,7 +297,7 @@ def main(args):
     logger.info(f"Test samples: {len(test_dataset)}")
     
     SAM = build_sam_vit_h(args.sam_checkpoint).to(args.device)
-    pkg = import_module('sam_lora_image_encoder_mask_decoder')
+    pkg = import_module('sam_lora_image_encoder')
     net = pkg.LoRA_Sam(SAM, args.lora_rank).to(args.device)
     logger.info("SAM model loaded successfully")
     
