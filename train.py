@@ -191,9 +191,10 @@ def main(args):
         for step, batch in enumerate(pbar):
             image = batch["image"].to(args.device)
             gt2D = batch["gt2D"].to(args.device)
+            attribution_map = batch["attribution_map"].to(args.device)
             
             input_images = SAM.preprocess(image)
-            image_embeddings = lora_net.sam.image_encoder(input_images)  # [b,256,64,64] vit_b
+            image_embeddings = lora_net.sam.image_encoder(input_images)  # [b,256,64,64]
             
             logits_pred = model(image_embeddings, attribution_map)
             logits_pred = F.interpolate(
