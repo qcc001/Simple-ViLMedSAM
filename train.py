@@ -71,7 +71,7 @@ def dice_coeff(pred, mask):
     dice = (2.0 * intersection + smooth) / (union + smooth)
     return dice
 
-def evaluation(model_to_eval, dataloader, SAM, net, CLIP, preprocess, tokenizer, args, logger):
+def evaluation(model_to_eval, dataloader, SAM, lora_net, args, logger):
     model_to_eval.eval()
     dices = []
     logger.info("Starting validation...")
@@ -83,7 +83,7 @@ def evaluation(model_to_eval, dataloader, SAM, net, CLIP, preprocess, tokenizer,
             attribution_map = batch["attribution_map"].to(args.device)
 
             input_image = SAM.preprocess(image)
-            image_embeddings = net.sam.image_encoder(input_image)
+            image_embeddings = lora_net.sam.image_encoder(input_image)
             logits = model_to_eval(image_embeddings, attribution_map)
             logits = F.interpolate(logits, (args.image_size, args.image_size), mode='bilinear', align_corners=False)
             pred = torch.sigmoid(logits)
@@ -117,11 +117,6 @@ def main(args):
     lora_net = pkg.LoRA_Sam(SAM, 4).cuda()
     model_grad_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
     logger.info(f'Trainable LoRA parameters: {model_grad_params:,}')
-
-    CLIP, preprocess = create_model_from_pretrained('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
-    tokenizer = get_tokenizer('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
-    CLIP.requires_grad_(False)
-    CLIP.eval()
 
     dice_loss = monai.losses.DiceLoss(sigmoid=True, squared_pred=True, reduction="mean")
     ce_loss = nn.BCEWithLogitsLoss(reduction='mean')
@@ -240,7 +235,7 @@ def main(args):
         
         logger.info("Running validation...")
         val_dice = evaluation(
-            model, val_loader, SAM, net, CLIP, preprocess, tokenizer, args, logger
+            model, val_loader, SAM, lora_net, args, logger
         )
         logger.info(f"Validation Seg Dice: {val_dice:.4f}")
 
