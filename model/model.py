@@ -5,19 +5,9 @@ import torch
 
 
 def normalize_imagenet_single_channel(image):
-    """
-    ImageNet风格标准化，适用于单通道图像 [b, 1, H, W]
-
-    方法：使用三个通道的平均值
-    均值 = (0.485+0.456+0.406)/3 = 0.449
-    标准差 = (0.229+0.224+0.225)/3 = 0.226
-    """
     image_0_1 = image / 255.0
-
-    # 单通道的均值和标准差（RGB三个通道的平均）
     mean = torch.tensor([0.449], device=image.device).view(1, 1, 1, 1)
     std = torch.tensor([0.226], device=image.device).view(1, 1, 1, 1)
-
     return (image_0_1 - mean) / std
 
 
@@ -27,7 +17,7 @@ class Model(nn.Module):
             embedding_dim: int = 256,
             num_heads: int = 8,
             mlp_dim: int = 2048,
-            act: Type[nn.Module] = nn.ReLU,
+            act: Type[nn.Module] = nn.LeakyReLU,
             attention_downsample_rate: int = 2,
     ) -> None:
 
