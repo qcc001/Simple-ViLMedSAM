@@ -347,7 +347,6 @@ def main(args):
     logger.info("TESTING RESULTS SUMMARY")
     logger.info(format_metrics_table(all_epoch_stats))
     
-    # 找出最佳epoch
     if all_epoch_stats:
         best_dice_epoch = max(all_epoch_stats.keys(), 
                              key=lambda e: all_epoch_stats[e].get('dice', {}).get('mean', 0))
