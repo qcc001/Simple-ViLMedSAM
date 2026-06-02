@@ -46,6 +46,11 @@ Download BiomedCLIP pre-trained ViT-B/16 at [here](https://huggingface.co/micros
 pip install -r requirements.txt
 ```
 
+### Preprocessing
+```bash
+python scripts/generate_map.py
+```
+
 ### Training
 ```bash
 python train.py
