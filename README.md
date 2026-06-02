@@ -21,13 +21,16 @@ data
 ├──ISIC
 │   ├── train/
 │   │   ├── images/
-│   │   └── labels/
+│   │   ├── labels/
+│   │   └── attribution_map/
 │   ├── val/
 │   │   ├── images/
-│   │   └── labels/
+│   │   ├── labels/
+│   │   └── attribution_map/
 │   └── test/
 │       ├── images/
-│       └── labels/
+│       ├── labels/
+│       └── attribution_map/
 ├── ...
 ```
 All of the masks must be binary segmentation images with 0 for background and 255 for foreground; if not, please process them accordingly.
