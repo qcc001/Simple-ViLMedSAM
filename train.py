@@ -51,7 +51,6 @@ def parse_args():
     parser.add_argument("--resume", type=str, default=None, help="load resume")
     parser.add_argument("--model_type", type=str, default="default", help="model_type")
     parser.add_argument("-weight_decay", type=float, default=0.01, help="Weight decay.")
-    parser.add_argument("-iou_loss_weight", type=float, default=1.0, help="Weight of IoU loss.")
     parser.add_argument("-seg_loss_weight", type=float, default=1.0, help="Weight of segmentation loss.")
     parser.add_argument("-ce_loss_weight", type=float, default=1.0, help="Weight of cross entropy loss.")
     parser.add_argument("-num_workers", type=int, default=4, help="Number of workers for dataloader.")
