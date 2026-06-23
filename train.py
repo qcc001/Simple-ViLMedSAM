@@ -46,6 +46,7 @@ def parse_args():
     parser.add_argument("--image_size", type=int, default=1024, help="image_size")
     parser.add_argument("--data_root", type=str, default="/train data path", help="train data path")
     parser.add_argument('--device', type=str, default='cuda')
+    parser.add_argument('--lr_scheduler', type=str, default="cosine")
     parser.add_argument("--lora_lr", type=float, default=0.0002, help="learning rate")
     parser.add_argument("--model_lr", type=float, default=0.0001, help="learning rate")
     parser.add_argument("--resume", type=str, default=None, help="load resume")
@@ -144,13 +145,21 @@ def main(args):
         {"params": net.parameters(), "lr": args.lora_lr}, 
         {"params": model.parameters(), "lr": args.model_lr}
     ], weight_decay=1e-4)
-    
-    scheduler = get_cosine_schedule_with_warmup(
-        optimizer, 
-        num_warmup_steps=num_warmup_steps, 
-        num_training_steps=num_training_steps
-    )
-    logger.info('Using CosineAnnealingLR with Warmup')
+
+    if args.lr_scheduler:
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=num_warmup_steps,
+            num_training_steps=num_training_steps,
+        )
+        logger.info('Using CosineAnnealingLR with Warmup')
+    else:
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=args.num_epochs,
+            eta_min=args.model_lr * 0.01
+        )
+        logger.info('*******Use CosineAnnealingLR')
 
     torch.cuda.empty_cache()
     start_epoch = 0
@@ -213,7 +222,8 @@ def main(args):
             
             if (step + 1) % args.accumulation_steps == 0:
                 optimizer.step()
-                scheduler.step()
+                if args.lr_scheduler:
+                    scheduler.step()
                 optimizer.zero_grad()
                 global_step += 1
                 
@@ -227,10 +237,14 @@ def main(args):
         
         if (step + 1) % args.accumulation_steps != 0:
             optimizer.step()
-            scheduler.step()
+            if args.lr_scheduler:
+                scheduler.step()
             optimizer.zero_grad()
             global_step += 1
         
+        if not args.lr_scheduler:
+                scheduler.step()
+
         avg_epoch_loss = np.mean(epoch_losses)
         logger.info(f"Epoch {epoch} Summary:")
         logger.info(f"  Average Loss: {avg_epoch_loss:.4f}")
