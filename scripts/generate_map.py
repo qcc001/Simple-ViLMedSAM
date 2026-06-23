@@ -265,7 +265,7 @@ def main(args):
         args.vvar = best_combo['vvar']
         args.vlayer = int(best_combo['vlayer'])
 
-    print("Generating Saliency Maps ...") # skin melanoma 0.1/0.1/9 polyp 1/2/8 lung_Xray 0.1/0.1/7 lung_CT 0.1/0.1/8
+    print("Generating Saliency Maps ...")
 
     # Iterate through the input images and generate saliency maps
     for image_id in tqdm(sorted(os.listdir(args.input_path))):
@@ -307,9 +307,9 @@ if __name__ == '__main__':
                         type=str, help='path to the output')
     parser.add_argument('--val-path', type=str, default=""your val image path",
                         help='path to the validation set for hyperparameter optimization')
-    parser.add_argument('--vbeta', type=float, default=2.0) #skin melanoma 0.1  polyp 0.1  lung(Xray) 0.1 lung(CT) 0.1
-    parser.add_argument('--vvar', type=float, default=2.0) #skin melanoma 2  polyp 2  lung(Xray) 1 lung(CT) 1
-    parser.add_argument('--vlayer', type=int, default=7) #skin melanoma 9  polyp 7  lung(Xray) 7 lung(CT) 7
+    parser.add_argument('--vbeta', type=float, default=2.0)
+    parser.add_argument('--vvar', type=float, default=2.0)
+    parser.add_argument('--vlayer', type=int, default=7)
     parser.add_argument('--model_name', type=str, default="BiomedCLIP", help="Which CLIP model to use")
     parser.add_argument('--model_path', type=str, default="your model path")
     parser.add_argument('--text', type=str, default="simple text to describe target image category")
