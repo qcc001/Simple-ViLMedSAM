@@ -63,7 +63,6 @@ def parse_args():
 def dice_coeff(pred, mask):
     smooth = 1e-6
     assert pred.shape == mask.shape, "pred and mask should have the same shape."
-    pred = torch.sigmoid(pred)
     pred = (pred > 0.5).float()
     intersection = torch.sum(pred * mask)
     union = torch.sum(pred) + torch.sum(mask)
