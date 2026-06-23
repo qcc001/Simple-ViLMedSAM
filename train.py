@@ -50,10 +50,11 @@ def parse_args():
     parser.add_argument("--model_lr", type=float, default=0.0001, help="learning rate")
     parser.add_argument("--resume", type=str, default=None, help="load resume")
     parser.add_argument("--model_type", type=str, default="default", help="model_type")
-    parser.add_argument("-weight_decay", type=float, default=0.01, help="Weight decay.")
-    parser.add_argument("-seg_loss_weight", type=float, default=1.0, help="Weight of segmentation loss.")
-    parser.add_argument("-ce_loss_weight", type=float, default=1.0, help="Weight of cross entropy loss.")
-    parser.add_argument("-num_workers", type=int, default=4, help="Number of workers for dataloader.")
+    parser.add_argument("--weight_decay", type=float, default=0.01, help="Weight decay.")
+    parser.add_argument("--seg_loss_weight", type=float, default=1.0, help="Weight of segmentation loss.")
+    parser.add_argument("--ce_loss_weight", type=float, default=1.0, help="Weight of cross entropy loss.")
+    parser.add_argument("--num_workers", type=int, default=4, help="Number of workers for dataloader.")
+    parser.add_argument('--val_interval', type=int, default=1, help="validate every N epochs")
     args = parser.parse_args()
 
     if args.resume is not None:
@@ -256,7 +257,7 @@ def main(args):
         if not os.path.exists(save_net_dir):
             os.makedirs(save_net_dir)
         
-        if (epoch % 10) == 0:
+        if (epoch % args.val_interval) == 0:
             save_path = join(args.work_dir, f"checkpoint_epoch_{epoch}.pth")
             torch.save(checkpoint, save_path)
             save_net_path = os.path.join(save_net_dir, 'checkpoint_epoch_{epoch}.pth')
