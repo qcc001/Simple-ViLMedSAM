@@ -1,4 +1,4 @@
-from typing import Type
+import math
 from segment_anything.modeling.common import *
 from segment_anything.modeling.transformer import Attention
 import torch
