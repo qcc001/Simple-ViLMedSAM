@@ -111,7 +111,7 @@ def main(args):
         logger.info(f"  {arg}: {value}")
     logger.info("=" * 50)
     
-    model = Model(args).to(args.device)
+    model = Model(embedding_dim=256, num_heads=8, mlp_dim=2048, act=nn.LeakyReLU).to(args.device)
     logger.info(f"Model size: {sum(p.numel() for p in model.parameters()):,} parameters")
 
     SAM = build_sam_vit_h("sam_vit_h_4b8939.pth").to(args.device)
