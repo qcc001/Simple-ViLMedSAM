@@ -268,14 +268,14 @@ def main(args):
         if not os.path.exists(args.work_dir):
             os.makedirs(args.work_dir, exist_ok=True)
         save_lora_dir = join(args.work_dir, "lora")
-        if not os.path.exists(save_net_dir):
-            os.makedirs(save_net_dir)
+        if not os.path.exists(save_lora_dir):
+            os.makedirs(save_lora_dir)
         
         if (epoch % args.val_interval) == 0:
             save_path = join(args.work_dir, f"checkpoint_epoch_{epoch}.pth")
             torch.save(checkpoint, save_path)
-            save_net_path = os.path.join(save_net_dir, 'checkpoint_epoch_{epoch}.pth')
-            lora_net.save_lora_parameters(save_net_path)
+            save_lora_path = os.path.join(save_lora_dir, 'checkpoint_epoch_{epoch}.pth')
+            lora_net.save_lora_parameters(save_lora_path)
             logger.info(f"Saved checkpoint to {save_path}")
         
         if val_dice > best_seg_dice:
@@ -284,8 +284,8 @@ def main(args):
             best_checkpoint = checkpoint.copy()
             best_path = join(args.work_dir, "best_model.pth")
             torch.save(best_checkpoint, best_path)
-            save_net_path = os.path.join(save_net_dir, 'best_model.pth')
-            lora_net.save_lora_parameters(save_net_path)
+            save_lora_path = os.path.join(save_lora_dir, 'best_model.pth')
+            lora_net.save_lora_parameters(save_lora_path)
             logger.info(f"New best model! Dice: {best_seg_dice:.4f} at epoch {best_epoch}")
         
         latest_path = join(args.work_dir, "latest_model.pth")
