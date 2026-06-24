@@ -236,6 +236,9 @@ def main(args):
             )
         
         if (step + 1) % args.accumulation_steps != 0:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                if args.lora_finetune:
+                    torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
             optimizer.step()
             if args.lr_scheduler == "zero":
                 scheduler.step()
