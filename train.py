@@ -249,7 +249,6 @@ def main(args):
         val_dice = evaluation(
             model, val_loader, SAM, lora_net, args, logger
         )
-        logger.info(f"Validation Seg Dice: {val_dice:.4f}")
 
         checkpoint = {
             "model": model.state_dict(),
@@ -285,6 +284,8 @@ def main(args):
         
         latest_path = join(args.work_dir, "latest_model.pth")
         torch.save(checkpoint, latest_path)
+
+        logger.info(f"Validation Seg Dice: {val_dice:.4f}, Best={best_seg_dice:.4f}")
     
     logger.info("\n" + "=" * 50)
     logger.info(f"Training Complete! Best Dice: {best_seg_dice:.4f} at epoch {best_epoch}")
