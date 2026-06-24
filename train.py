@@ -46,7 +46,7 @@ def parse_args():
     parser.add_argument("--image_size", type=int, default=1024, help="image_size")
     parser.add_argument("--data_root", type=str, default="/train data path", help="train data path")
     parser.add_argument('--device', type=str, default='cuda')
-    parser.add_argument('--lr_scheduler', type=str, default="zero", help="zero for zero-shot task")
+    parser.add_argument('--lr_scheduler', type=str, default="zero", help="zero for zero-shot task, others for few-shot task")
     parser.add_argument("--lora_lr", type=float, default=0.0002, help="learning rate")
     parser.add_argument("--model_lr", type=float, default=0.0001, help="learning rate")
     parser.add_argument("--resume", type=str, default=None, help="load resume")
