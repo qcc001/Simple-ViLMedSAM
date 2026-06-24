@@ -2,7 +2,7 @@ from typing import Type
 from segment_anything.modeling.common import *
 from segment_anything.modeling.transformer import Attention
 import torch
-import math
+import torch.nn.functional as F
 
 class Model(nn.Module):
     def __init__(
