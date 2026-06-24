@@ -100,7 +100,7 @@ class Model(nn.Module):
 
         sam_image_feats = sam_image_feats.flatten(2).permute(0, 2, 1)  # [b,4096,256]
 
-        attn_out = self.cross_attn1(q=sam_image_feats, k=vmap_feats, v=vmap_feats)
+        attn_out = self.cross_attn1(q=sam_image_feats, k=attribution_map_feats, v=attribution_map_feats)
         queries1 = sam_image_feats + attn_out
         queries1 = self.norm2(queries1)  # [b,4096,256]
 
