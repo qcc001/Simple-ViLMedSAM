@@ -237,7 +237,7 @@ def main(args):
         
         if (step + 1) % args.accumulation_steps != 0:
             optimizer.step()
-            if args.lr_scheduler:
+            if args.lr_scheduler == "zero":
                 scheduler.step()
             optimizer.zero_grad()
             global_step += 1
