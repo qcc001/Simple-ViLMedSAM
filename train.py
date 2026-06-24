@@ -230,20 +230,12 @@ def main(args):
                 current_lr = scheduler.get_last_lr()
                 logger.debug(f"Step {global_step}: LR = {[f'{lr:.2e}' for lr in current_lr]}")
                 
+            epoch_losses.append(loss.item())
+            
             pbar.set_description(
                 f"Epoch {epoch} | Loss: {loss.item()*args.accumulation_steps:.4f} | "
                 f"Seg: {l_seg.item():.4f} | CE: {l_ce.item():.4f}"
             )
-        
-        if (step + 1) % args.accumulation_steps != 0:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                if args.lora_finetune:
-                    torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
-            optimizer.step()
-            if args.lr_scheduler == "zero":
-                scheduler.step()
-            optimizer.zero_grad()
-            global_step += 1
         
         if args.lr_scheduler != "zero":
                 scheduler.step()
