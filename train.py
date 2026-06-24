@@ -46,7 +46,7 @@ def parse_args():
     parser.add_argument("--image_size", type=int, default=1024, help="image_size")
     parser.add_argument("--data_root", type=str, default="/train data path", help="train data path")
     parser.add_argument('--device', type=str, default='cuda')
-    parser.add_argument('--lr_scheduler', type=str, default="cosine")
+    parser.add_argument('--lr_scheduler', type=str, default="zero", help="zero for zero-shot task")
     parser.add_argument("--lora_lr", type=float, default=0.0002, help="learning rate")
     parser.add_argument("--model_lr", type=float, default=0.0001, help="learning rate")
     parser.add_argument("--resume", type=str, default=None, help="load resume")
@@ -146,7 +146,7 @@ def main(args):
         {"params": model.parameters(), "lr": args.model_lr}
     ], weight_decay=1e-4)
 
-    if args.lr_scheduler:
+    if args.lr_scheduler == "zero":
         scheduler = get_cosine_schedule_with_warmup(
             optimizer,
             num_warmup_steps=num_warmup_steps,
@@ -222,7 +222,7 @@ def main(args):
             
             if (step + 1) % args.accumulation_steps == 0:
                 optimizer.step()
-                if args.lr_scheduler:
+                if args.lr_scheduler == "zero":
                     scheduler.step()
                 optimizer.zero_grad()
                 global_step += 1
@@ -242,7 +242,7 @@ def main(args):
             optimizer.zero_grad()
             global_step += 1
         
-        if not args.lr_scheduler:
+        if args.lr_scheduler != "zero":
                 scheduler.step()
 
         avg_epoch_loss = np.mean(epoch_losses)
