@@ -58,6 +58,10 @@ class MyDataset(Dataset):
                 img_padded_trans = np.ascontiguousarray(np.flip(img_padded_trans, axis=-2))
                 gt2D = np.ascontiguousarray(np.flip(gt2D, axis=-2))
                 map = np.ascontiguousarray(np.flip(map, axis=-2))
+            if random.random() > 0.5:
+                img_padded_trans = np.rot90(img_padded_trans, k, axes=(-2, -1)).copy()
+                gt2D = np.rot90(gt2D, k, axes=(-2, -1)).copy()
+                map = np.rot90(map, k, axes=(-2, -1)).copy()
 
         return {
             "image": torch.tensor(img_padded_trans),  # [3,image_size,image_size]
