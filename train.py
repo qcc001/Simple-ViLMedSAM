@@ -248,7 +248,7 @@ def main(args):
         if args.lr_scheduler != "zero":
                 scheduler.step()
 
-        avg_epoch_loss = np.mean(epoch_losses)
+        avg_epoch_loss = float(np.mean(epoch_losses)) if len(epoch_losses) > 0 else 0.0
         logger.info(f"Epoch {epoch} Summary:")
         logger.info(f"  Average Loss: {avg_epoch_loss:.4f}")
         logger.info(f"  Current LR: {[f'{lr:.2e}' for lr in scheduler.get_last_lr()]}")
