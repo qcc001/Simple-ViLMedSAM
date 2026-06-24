@@ -94,7 +94,7 @@ class Model(nn.Module):
         attribution_map_feature = self.proj(attribution_map_normalized)  # [b,256,64,64]
         attribution_map_flat = attribution_map_feature.flatten(2).permute(0, 2, 1)  # [b,h*w,256]
         attribution_map_feature = self.norm1(attribution_map_flat)  # [b,4096,256]
-        attribution_map_feature_mlp = self.attribution_map_map(attribution_map_feature)
+        attribution_map_feature_mlp = self.mlp_map(attribution_map_feature)
         attribution_map_feats = attribution_map_feature_mlp + attribution_map_feature
         attribution_map_feats = self.norm_map(attribution_map_feats)  # [b, 4096, 256]
 
