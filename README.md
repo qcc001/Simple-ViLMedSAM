@@ -11,7 +11,7 @@
 ## Datasets
 Public datasets used in our study:
 * [Kvasir-SEG](https://datasets.simula.no/kvasir-seg/)
-* [ISIC](https://challenge.isic-archive.com/data/)
+* [ISIC](https://challenge.isic-archive.com/data/#2016)
 * [COVID-QU-Ex](https://www.kaggle.com/datasets/anasmohammedtahir/covidqu)
 * [Chest CT](https://www.kaggle.com/datasets/polomarco/chest-ct-segmentation)
 
